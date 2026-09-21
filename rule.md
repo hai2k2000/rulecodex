@@ -1165,6 +1165,494 @@ READ
 
 ---
 
+
+# 45. PRODUCTION DEPLOYMENT LIFECYCLE VÀ RETENTION
+
+Quy tắc này áp dụng cho mọi dự án chạy production trên VPS/server khi deployment tạo release directory, build artifact, Git worktree, systemd override/drop-in hoặc container/image có thể tích tụ theo thời gian.
+
+Mục tiêu:
+
+> **DEPLOY PHẢI CÓ VÒNG ĐỜI HỮU HẠN.**
+
+Không được thiết kế quy trình mà mỗi lần deploy tạo thêm release/worktree/config mới nhưng không có retention, rollback và cleanup rõ ràng.
+
+## 45.1. RELEASE MODEL MẶC ĐỊNH
+
+Nếu kiến trúc cho phép, ưu tiên mô hình immutable release + symlink ổn định:
+
+```text
+releases/
+  <release-A>
+  <release-B>
+  <release-C>
+
+current    -> release đang chạy
+previous   -> release ngay trước current
+rollback-2 -> release trước previous
+```
+
+Semantics phải cố định:
+
+```text
+current     = production hiện tại
+previous    = rollback gần nhất
+rollback-2  = rollback thứ hai
+```
+
+Không được thay đổi ý nghĩa giữa các script.
+
+Nếu dự án không phù hợp với symlink model thì phải dùng cơ chế tương đương có state ổn định và rollback rõ ràng.
+
+## 45.2. KHÔNG GẮN SYSTEMD VÀO RELEASE LỊCH SỬ
+
+Không được tạo một systemd drop-in mới chứa đường dẫn release cụ thể sau mỗi deployment.
+
+Không để lịch sử kiểu:
+
+```text
+drop-in-01.conf -> release-01
+drop-in-02.conf -> release-02
+drop-in-03.conf -> release-03
+...
+```
+
+Ưu tiên systemd/service dùng một đường dẫn ổn định như:
+
+```text
+WorkingDirectory=/path/to/releases/current
+```
+
+hoặc launcher/state path ổn định tương đương.
+
+Nếu migration từ cấu hình cũ:
+
+1. backup unit và toàn bộ drop-in;
+2. lập migration plan;
+3. lập rollback plan;
+4. consolidate cấu hình;
+5. `daemon-reload`;
+6. controlled restart;
+7. health check;
+8. rollback cấu hình cũ nếu fail.
+
+Không được chỉ thêm một drop-in mới lên trên một chuỗi drop-in lịch sử.
+
+## 45.3. ACTIVATION PHẢI ATOMIC
+
+Đổi release active phải atomic.
+
+Không được có thời điểm `current` trỏ tới path không tồn tại hoặc release chưa hoàn chỉnh.
+
+Ví dụ hợp lệ:
+
+```bash
+ln -s "$NEW_RELEASE" current.new
+mv -Tf current.new current
+```
+
+hoặc cơ chế atomic tương đương đã được test.
+
+Không activate release trước khi build/validation hoàn tất.
+
+## 45.4. DEPLOY FLOW CHUẨN
+
+Flow mặc định:
+
+```text
+PRECHECK
+→ resolve exact commit
+→ disk guard
+→ acquire deploy lock
+→ create temporary build workspace
+→ build new immutable release
+→ validate build
+→ record current/previous/rollback state
+→ atomic activate new current
+→ controlled restart/reload
+→ health check
+→ nếu PASS: finalize rollback pointers
+→ retention
+→ final health check
+→ release lock
+```
+
+Nếu health check FAIL:
+
+```text
+restore prior state
+→ controlled restart
+→ health check
+→ giữ failed release để điều tra
+→ không chạy retention có thể làm mất rollback
+```
+
+Không chạy retention trước khi release mới PASS health check.
+
+## 45.5. DEPLOY LOCK
+
+Production deploy phải có lock chống hai deployment chạy đồng thời.
+
+Ưu tiên `flock` hoặc cơ chế tương đương.
+
+Hai deployment đồng thời có thể phá:
+
+* current/previous/rollback pointers;
+* service state;
+* retention state;
+* build workspace;
+* rollback safety.
+
+Nếu không lấy được lock:
+
+> ABORT DEPLOY.
+
+Không chờ vô hạn nếu không có policy rõ ràng.
+
+## 45.6. DISK GUARD
+
+Deploy phải kiểm tra dung lượng trước khi build.
+
+Không chỉ kiểm tra filesystem còn trống hơn 0.
+
+Phải có tối thiểu:
+
+```text
+desired_free_space
+hard_min_free_space
+estimated_release_headroom
+```
+
+Ví dụ logic:
+
+```text
+free >= desired:
+  continue
+
+hard_min <= free < desired:
+  safe retention dry-run / cleanup nếu policy cho phép
+
+free < hard_min:
+  abort
+
+free - estimated_release_headroom < hard_min:
+  abort
+```
+
+Không được cố build khi filesystem có nguy cơ đầy giữa quá trình build.
+
+Error phải nêu rõ:
+
+```text
+DEPLOY ABORTED
+Free space:
+Required minimum:
+Estimated build headroom:
+```
+
+## 45.7. RETENTION POLICY
+
+Production release phải có retention hữu hạn.
+
+Mặc định giữ:
+
+```text
+current
+previous
+rollback-2
+explicitly protected releases
+```
+
+Release khác chỉ được DELETE khi đồng thời:
+
+```text
+không phải current
+không phải previous
+không phải rollback-2
+không có protection marker
+không phải backup
+không có process sử dụng
+không có open file
+không được systemd/service reference
+không phải mount/container reference
+không thuộc production data
+```
+
+Không đủ bằng chứng:
+
+> REVIEW — KHÔNG DELETE.
+
+Không được delete chỉ vì release "cũ".
+
+## 45.8. RETENTION SCRIPT
+
+Nếu có retention script, phải hỗ trợ:
+
+```text
+--dry-run
+--apply
+```
+
+Mặc định:
+
+> **DRY-RUN.**
+
+Không có tham số không được tự xóa.
+
+Output tối thiểu:
+
+```text
+KEEP    <release> <reason>
+DELETE  <release> <reason>
+REVIEW  <release> <reason>
+```
+
+`--apply` chỉ được xóa mục đã được phân loại chắc chắn là `DELETE`.
+
+Backup directory phải nằm ngoài phạm vi recurse/delete của release retention.
+
+## 45.9. PROTECTED RELEASE
+
+Không hard-code vĩnh viễn tên release lịch sử vào script.
+
+Phải có protection mechanism dùng chung, ví dụ:
+
+```text
+<release>/.keep
+```
+
+hoặc manifest/registry tương đương.
+
+Protection phải có thể audit được.
+
+## 45.10. RELEASE METADATA
+
+Mỗi immutable release nên có metadata tối thiểu:
+
+```text
+release_id
+commit
+branch
+created_at
+deployed_at
+source_worktree
+build_id
+```
+
+Nếu chưa từng activate, `deployed_at` có thể rỗng/null.
+
+Không phụ thuộc hoàn toàn vào tên folder để đoán provenance.
+
+## 45.11. WORKTREE LIFECYCLE
+
+Development worktree và production release là hai lifecycle khác nhau.
+
+> **WORKTREE != PRODUCTION RELEASE**
+
+Production deploy không được yêu cầu giữ development worktree vô thời hạn.
+
+Worktree cleanup phải là lệnh/quy trình riêng.
+
+Không auto-delete worktree nếu:
+
+```text
+dirty
+có untracked files
+process đang sử dụng
+branch chưa push/reachable trên remote
+ownership không rõ
+```
+
+Chỉ xem là cleanup candidate khi:
+
+```text
+clean
++
+commit đã push/reachable
++
+không process sử dụng
++
+không còn nhiệm vụ active phụ thuộc
+```
+
+Ưu tiên:
+
+```bash
+git worktree remove <path>
+git worktree prune
+```
+
+Không dùng `rm -rf` cho Git worktree nếu chưa có lý do kỹ thuật rõ ràng.
+
+## 45.12. BUILD WORKSPACE
+
+Build tạm phải có lifecycle rõ ràng.
+
+Không để tích tụ:
+
+```text
+.next.before-*
+.next.backup-*
+node_modules backup
+temporary build directories
+stale compilation cache
+```
+
+trong source/worktree vô thời hạn.
+
+Temporary workspace nên có cleanup bằng `trap` hoặc cơ chế tương đương.
+
+Nhưng cleanup trap không được xóa:
+
+* release đã activate;
+* failed release cần forensic;
+* production data;
+* rollback target.
+
+## 45.13. ROLLBACK
+
+Rollback phải là command/workflow chuẩn, không phụ thuộc vào reconstruct source thủ công.
+
+Rollback tối thiểu:
+
+```text
+switch current → previous
+→ controlled restart
+→ health check
+```
+
+Nếu rollback cũng fail:
+
+* phục hồi state trước thao tác nếu còn hợp lệ;
+* STOP;
+* báo blocker với evidence.
+
+Không xóa failed release trước khi root cause được xác định nếu nó cần cho điều tra.
+
+## 45.14. HEALTH CHECK
+
+Sau activation/rollback phải có health check phù hợp dự án.
+
+Tối thiểu khi áp dụng:
+
+* service active;
+* restart count không tăng bất thường;
+* working directory/active release đúng;
+* HTTP/application health endpoint PASS;
+* dependency critical PASS nếu nằm trong acceptance criteria.
+
+Không coi `systemctl restart` thành công là đủ bằng chứng production healthy.
+
+## 45.15. BACKUP RETENTION TÁCH RIÊNG
+
+Production release retention không được tự quản lý database backup hoặc source backup quan trọng.
+
+Các nhóm sau phải có policy riêng:
+
+```text
+database backups
+application data backups
+ops backups
+disaster recovery artifacts
+credentials/secrets
+```
+
+Không để release cleanup recurse vào các vùng này.
+
+## 45.16. DOCKER SAFETY
+
+Không dùng cleanup Docker tổng quát làm bước mặc định của deploy.
+
+Không tự chạy:
+
+```bash
+docker system prune --volumes
+docker volume prune
+```
+
+trên production.
+
+Image cleanup chỉ được thực hiện khi mapping image → container/service rõ ràng.
+
+Volume có database/application data phải mặc định:
+
+> PROTECTED.
+
+## 45.17. PRODUCTION MIGRATION GATE
+
+Nếu chuyển một dự án đang chạy từ deploy cũ sang lifecycle mới:
+
+Phải tách thành checkpoint riêng:
+
+```text
+implementation
+→ tests/mocks
+→ retention dry-run
+→ migration plan
+→ rollback plan
+→ production migration
+→ smoke test
+```
+
+Không được vừa viết script vừa sửa systemd production trong cùng một bước nếu chưa có validation độc lập đủ cho migration.
+
+## 45.18. STEADY STATE MONG MUỐN
+
+Sau khi hệ thống ổn định, số release/worktree/config không được tăng tuyến tính theo số lần deploy.
+
+Steady state hợp lệ:
+
+```text
+current release
+previous release
+rollback-2 release
+optional explicitly protected release(s)
+bounded logs/cache
+bounded worktrees
+stable service config
+```
+
+Không hợp lệ:
+
+```text
+deploy 1  -> +1 release
+deploy 2  -> +1 release
+deploy 3  -> +1 release
+...
+deploy 50 -> vẫn giữ toàn bộ 50 release
+```
+
+## 45.19. DEFINITION OF DONE CHO DEPLOY PIPELINE
+
+Deploy pipeline chỉ được coi là COMPLETE khi:
+
+```text
+[ ] Có release lifecycle hữu hạn
+[ ] Có rollback chuẩn
+[ ] Có retention dry-run/apply
+[ ] Có protection mechanism
+[ ] Có disk guard
+[ ] Có deploy lock
+[ ] Activation atomic hoặc tương đương
+[ ] Worktree lifecycle tách khỏi production
+[ ] Service config không tích tụ theo từng deploy
+[ ] Backup ngoài phạm vi retention
+[ ] Health check PASS
+[ ] Failed deploy không làm mất rollback tốt
+```
+
+Nếu thiếu một trong các gate an toàn chính ở trên:
+
+> chưa được coi là production-ready.
+
+## 45.20. GOLDEN DEPLOY RULE
+
+> **BUILD → VALIDATE → ACTIVATE → HEALTH CHECK → RETAIN ROLLBACK → CLEAN OLD RELEASES.**
+
+Không:
+
+> **BUILD → CREATE MORE STATE → RESTART → LEAVE EVERYTHING FOREVER.**
+
+
 # GOLDEN RULE
 
 > **Không nhầm "kiểm tra nhiều" với "làm việc tốt".**
