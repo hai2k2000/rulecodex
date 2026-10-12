@@ -72,6 +72,8 @@ Báo cáo: free bytes before/after, reclaimed bytes = after − before (ghi rõ 
 ## 7. Tránh tái phình
 
 - Build/deploy: disk gate trước thao tác nặng dựa trên **peak additional bytes + safety buffer**.
+- External artifact: kiểm tra `.release-meta`, file manifest SHA-256, source commit và secret scan trước khi nhận; verify-only không được restart/activate/migrate.
+- Runtime secrets: không nằm trong artifact; chỉ inject/link tại deployment gate đã được owner duyệt.
 - Failed-build: finalizer thu hồi staging khi không còn process/reference.
 - Worktree: giữ metadata/recovery, dọn cache của worktree inactive trước khi cân nhắc xóa source.
 - Release: bounded retention sau deploy, bảo vệ rollback/pinned.
