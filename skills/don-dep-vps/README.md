@@ -2,27 +2,37 @@
 
 Portable Codex skill `don-dep-vps` cho audit, dry-run, cleanup đã phê duyệt và kiểm soát phình dữ liệu sau deploy trên **nhiều VPS Linux**. Đây là skill **hướng dẫn vận hành**, không phải chương trình tự động xóa.
 
+**Lưu ý khi nâng cấp:** Skill `don-dep-vps` gốc có thể đã có script và test riêng trên máy Windows/VPS. Bản trong repo này hiện là **portable documentation baseline**; chưa nhập hoặc xác minh tương đương các script/test cũ. Hãy so sánh và hợp nhất trước khi thay bản đang cài, không xóa bản gốc.
+
 ## Cài từ GitHub
 
 Repository nguồn: `https://github.com/hai2k2000/rulecodex`
 
 Sau khi clone/pull repository tại máy điều khiển Codex:
 
-**Windows PowerShell** (không ghi đè bản đang dùng khi chưa so sánh):
+**Windows PowerShell** (chỉ cài khi chưa có bản cũ):
 
 ```powershell
-$src = "C:\path\to\rulecodex\skills\don-dep-vps"
-$dst = Join-Path $HOME ".codex\skills\don-dep-vps"
-# Kiểm tra/backup bản hiện có trước; chỉ copy sau khi xác nhận không mất sửa đổi riêng.
-Copy-Item -Path $src -Destination $dst -Recurse
+$src = "C:\\path\\to\\rulecodex\\skills\\don-dep-vps"
+$root = Join-Path $HOME ".codex\\skills"
+$dst = Join-Path $root "don-dep-vps"
+New-Item -ItemType Directory -Force -Path $root | Out-Null
+if (Test-Path $dst) {
+  Write-Warning "Existing skill detected: compare/backup and merge manually before replacing."
+} else {
+  Copy-Item -Path $src -Destination $dst -Recurse
+}
 ```
 
 **Linux/macOS**:
 
 ```bash
 mkdir -p "$HOME/.codex/skills"
-# Nếu đã có, diff/backup rồi mới thay; không overwrite tùy tiện.
-cp -R /path/to/rulecodex/skills/don-dep-vps "$HOME/.codex/skills/"
+if [ -e "$HOME/.codex/skills/don-dep-vps" ]; then
+  echo "Existing skill detected: compare/backup and merge manually before replacing."
+else
+  cp -R /path/to/rulecodex/skills/don-dep-vps "$HOME/.codex/skills/"
+fi
 ```
 
 Khởi động lại phiên Codex hoặc refresh danh mục skills nếu cần. Gọi bằng tên `don-dep-vps`.
