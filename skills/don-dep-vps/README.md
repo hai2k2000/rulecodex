@@ -2,6 +2,8 @@
 
 Portable Codex skill `don-dep-vps` cho audit, dry-run, cleanup đã phê duyệt và kiểm soát phình dữ liệu sau deploy trên **nhiều VPS Linux**. Đây là skill **hướng dẫn vận hành**, không phải chương trình tự động xóa.
 
+Skill cũng quy định external CI artifact handoff: CI build/package artifact bất biến; VPS chỉ verify provenance/checksum và giữ runtime secrets ở host. Verification mặc định không activate release.
+
 **Lưu ý khi nâng cấp:** Skill `don-dep-vps` gốc có thể đã có script và test riêng trên máy Windows/VPS. Bản trong repo này hiện là **portable documentation baseline**; chưa nhập hoặc xác minh tương đương các script/test cũ. Hãy so sánh và hợp nhất trước khi thay bản đang cài, không xóa bản gốc.
 
 ## Cài từ GitHub
