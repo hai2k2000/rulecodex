@@ -13,6 +13,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 This installs the skill under `$env:CODEX_HOME\skills` (or `$HOME\.codex\skills`) and caches the policy under `rules\GLOBAL_DEPLOY_POLICY.md`. Existing skill directories are renamed to a timestamped backup before replacement.
 
+With `-InstallGlobalInstructions`, a missing global `AGENTS.md` is created safely. The installer validates all sources and checksums before making changes; a failed preflight does not leave a partial install.
+
+The installer does not edit `config.toml`, model/provider settings, 9Router, CLIProxyAPI, npm `codex` launchers, or the Codex Desktop executable. It installs separate `codex-managed.ps1` and `codex-managed.cmd` launchers under `CODEX_HOME\bin`. The PowerShell startup hook is opt-in via `-InstallPowerShellHook`; CMD users can call `codex-managed.cmd` explicitly.
+
 ## WSL2 or Linux Codex
 
 Run the POSIX installer from a Linux-visible RuleCodex checkout:
@@ -22,6 +26,8 @@ bash scripts/install-codex-deploy-policy.sh "$PWD"
 ```
 
 The POSIX installer places `rulecodex-sync.sh`, `rulecodex-status.sh`, and `codex-managed.sh` in `$CODEX_HOME/bin`. Add that directory after the real Codex executable in the user's PATH or call the managed launcher by its full path.
+
+Codex Desktop is not replaced or wrapped. It continues to read the installed global instructions and skills; automatic pre-start sync is available only through the managed CLI launchers because the Desktop app does not expose a supported shell startup hook.
 
 Set `CODEX_HOME` explicitly when the environment does not use `$HOME/.codex`.
 

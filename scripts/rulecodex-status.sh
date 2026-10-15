@@ -7,7 +7,7 @@ if [[ -f "$STATE_FILE" ]]; then
   python3 - "$STATE_FILE" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding='utf-8'))
-for key in ('policy_version','source_ref','source_commit','policy_sha256','last_verified_utc','last_sync_status','last_error_utc'):
+for key in ('machine','policy_version','source_ref','source_commit','policy_sha256','last_verified_utc','last_sync_status','last_error_utc'):
     if key in data: print(f'{key}: {data[key]}')
 PY
 else

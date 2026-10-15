@@ -6,7 +6,7 @@ param(
 $statePath = Join-Path $CodexHome 'rules\rulecodex-state.json'
 if (Test-Path -LiteralPath $statePath) {
     $state = Get-Content -Raw -LiteralPath $statePath | ConvertFrom-Json
-    $state | Select-Object policy_version, source_ref, source_commit, policy_sha256, last_verified_utc, last_sync_status, last_error_utc | Format-List
+    $state | Select-Object machine, policy_version, source_ref, source_commit, policy_sha256, last_verified_utc, last_sync_status, last_error_utc | Format-List
 } else { Write-Output 'RuleCodex state: NOT_INSTALLED' }
 $agents = Join-Path $ProjectRoot 'AGENTS.md'
 if (Test-Path -LiteralPath $agents) {

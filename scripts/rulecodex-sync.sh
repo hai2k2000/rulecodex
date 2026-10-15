@@ -41,21 +41,35 @@ for item in data.get('managed_files', []):
     assert not path.is_absolute() and '..' not in path.parts
     file = p.parent / item
     assert file.is_file(), item
-    normalized = file.read_text(encoding='utf-8').replace('\\r\\n', '\\n').encode('utf-8')
+    normalized = file.read_text(encoding='utf-8').replace('\r\n', '\n').encode('utf-8')
     assert data['managed_sha256'][item].lower() == hashlib.sha256(normalized).hexdigest(), item
 PY
 commit="$(git -C "$tmp/repo" rev-parse HEAD)"
 policy_hash="$(python3 - "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" <<'PY'
 import hashlib, pathlib, sys
-print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8').replace('\\r\\n','\\n').encode('utf-8')).hexdigest().upper())
+print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8').replace('\r\n','\n').encode('utf-8')).hexdigest().upper())
 PY
 )"
 log INFO "Verified RuleCodex ref=$REF commit=$commit policy_hash=$policy_hash"
 if [[ "$MODE" != "sync" ]]; then exit 0; fi
 mkdir -p "$CODEX_HOME_DIR/skills/local-vps-deploy"
+backup_root="$CODEX_HOME_DIR/backups/rulecodex/$(date +%Y%m%d-%H%M%S)"
+backup_if_changed() {
+  local source="$1" destination="$2"
+  [[ -e "$destination" ]] || return 0
+  cmp -s "$source" "$destination" && return 0
+  mkdir -p "$backup_root"
+  cp -p "$destination" "$backup_root/$(basename "$destination")"
+}
+backup_if_changed "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" "$CODEX_HOME_DIR/rules/GLOBAL_DEPLOY_POLICY.md"
+backup_if_changed "$tmp/repo/skills/local-vps-deploy/SKILL.md" "$CODEX_HOME_DIR/skills/local-vps-deploy/SKILL.md"
 cp "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" "$CODEX_HOME_DIR/rules/GLOBAL_DEPLOY_POLICY.md"
 cp "$tmp/repo/skills/local-vps-deploy/SKILL.md" "$CODEX_HOME_DIR/skills/local-vps-deploy/SKILL.md"
 agents="$CODEX_HOME_DIR/AGENTS.md"
+if [[ ! -f "$agents" ]]; then
+  mkdir -p "$(dirname "$agents")"
+  : > "$agents"
+fi
 if [[ -f "$agents" ]]; then
   python3 - "$agents" "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" <<'PY'
 import pathlib, re, sys
@@ -85,12 +99,12 @@ pattern = re.compile(r'<!-- BEGIN CODEX GLOBAL DEPLOY POLICY -->.*?<!-- END CODE
 next_text = pattern.sub(block, text) if pattern.search(text) else text.rstrip() + "\n\n" + block + "\n"
 if next_text != text:
     backup = agents.with_name(agents.name + '.backup-' + __import__('datetime').datetime.now().strftime('%Y%m%d-%H%M%S'))
-    backup.write_text(text, encoding='utf-8')
+    if text: backup.write_text(text, encoding='utf-8')
     agents.write_text(next_text, encoding='utf-8')
 PY
 else
   log WARN "Global AGENTS.md not found; policy cache updated without creating it"
 fi
 policy_version="$(python3 -c "import json; print(json.load(open('$tmp/repo/RULECODEX_VERSION.json'))['policy_version'])")"
-printf '{"schema_version":1,"policy_version":"%s","source_repository":"%s","source_ref":"%s","source_commit":"%s","policy_sha256":"%s","last_sync_status":"success","last_verified_utc":"%s"}\n' "$policy_version" "$REPOSITORY_URL" "$REF" "$commit" "$policy_hash" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
+printf '{"schema_version":1,"machine":"%s","policy_version":"%s","source_repository":"%s","source_ref":"%s","source_commit":"%s","policy_sha256":"%s","last_sync_status":"success","last_verified_utc":"%s"}\n' "$(hostname)" "$policy_version" "$REPOSITORY_URL" "$REF" "$commit" "$policy_hash" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
 log INFO 'RuleCodex sync completed successfully'

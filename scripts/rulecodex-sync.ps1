@@ -5,8 +5,7 @@ param(
     [string]$RepositoryUrl = 'https://github.com/hai2k2000/rulecodex.git',
     [string]$Ref = 'codex/don-dep-vps-phase1-external-artifacts',
     [string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }),
-    [switch]$Offline,
-    [switch]$AllowUnverifiedSource
+    [switch]$Offline
 )
 
 $ErrorActionPreference = 'Stop'
@@ -181,11 +180,11 @@ try {
     if ($Mode -eq 'Sync' -and $status -ne 'current') {
         $globalStatus = Update-GlobalAgents (Join-Path $remoteRoot 'GLOBAL_DEPLOY_POLICY.md') $backupRoot
         Copy-ManagedFiles $remoteRoot $manifest $backupRoot
-        Save-State ([ordered]@{ schema_version = 1; policy_version = [string]$manifest.policy_version; source_repository = $RepositoryUrl; source_ref = $Ref; source_commit = $commit; policy_sha256 = $policyHash; last_verified_utc = (Get-Date).ToUniversalTime().ToString('o'); last_sync_status = 'success'; global_agents = $globalStatus })
+        Save-State ([ordered]@{ schema_version = 1; machine = [Environment]::MachineName; policy_version = [string]$manifest.policy_version; source_repository = $RepositoryUrl; source_ref = $Ref; source_commit = $commit; policy_sha256 = $policyHash; last_verified_utc = (Get-Date).ToUniversalTime().ToString('o'); last_sync_status = 'success'; global_agents = $globalStatus })
         Write-Event "RuleCodex sync completed successfully at policy $($manifest.policy_version)"
     }
     elseif (-not $state) {
-        Save-State ([ordered]@{ schema_version = 1; policy_version = [string]$manifest.policy_version; source_repository = $RepositoryUrl; source_ref = $Ref; source_commit = $commit; policy_sha256 = $policyHash; last_verified_utc = (Get-Date).ToUniversalTime().ToString('o'); last_sync_status = 'verified-only' })
+        Save-State ([ordered]@{ schema_version = 1; machine = [Environment]::MachineName; policy_version = [string]$manifest.policy_version; source_repository = $RepositoryUrl; source_ref = $Ref; source_commit = $commit; policy_sha256 = $policyHash; last_verified_utc = (Get-Date).ToUniversalTime().ToString('o'); last_sync_status = 'verified-only' })
     }
     exit 0
 }

@@ -81,6 +81,12 @@ Activation is blocked until the owner approves the exact project, release identi
 
 At project creation, add a project-specific `AGENTS.md` (or deployment document) that links to this policy and fills in the required configuration above. The project inherits this policy by default through the global Codex instructions. A project may narrow the allowed operations or add gates; it must document any intentional platform-specific deviation.
 
+## Environment synchronization
+
+Each Windows, WSL2, Linux, VPS, or office environment installs from the RuleCodex repository independently. Installers verify `RULECODEX_VERSION.json` and normalized SHA-256 checksums before changing managed files, back up changed files, and update only the marked global policy block. A missing global `AGENTS.md` is created only when global instructions are explicitly requested. Existing project-specific rules, Codex model/provider configuration, desktop binaries, and native launchers are not replaced.
+
+The managed launcher is optional. When used, it checks the remote RuleCodex ref before starting the CLI and falls back to the last verified local policy on network failure. Desktop Codex has no supported shell startup hook; it consumes the already-installed policy and skill. `rulecodex-status` reports the local machine, policy version, source commit, verification time, and baseline project-policy conflicts.
+
 ## Standard reporting
 
 Every build/deploy task reports: project, source commit, artifact/release id, target, mode (`build`, `verify`, or `activate`), checksums/provenance, health result, GitHub sync status, blockers, and rollback readiness. Never include passwords, private keys, tokens, or secret values.
