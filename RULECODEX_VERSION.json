@@ -2,7 +2,7 @@
   "schema_version": 1,
   "policy_version": "1.0.0",
   "source_repository": "https://github.com/hai2k2000/rulecodex.git",
-  "source_ref": "main",
+  "source_ref": "codex/don-dep-vps-phase1-external-artifacts",
   "managed_files": [
     "GLOBAL_DEPLOY_POLICY.md",
     "skills/local-vps-deploy/SKILL.md",

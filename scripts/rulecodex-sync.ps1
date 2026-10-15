@@ -3,7 +3,7 @@ param(
     [ValidateSet('Check', 'Sync')]
     [string]$Mode = 'Check',
     [string]$RepositoryUrl = 'https://github.com/hai2k2000/rulecodex.git',
-    [string]$Ref = 'main',
+    [string]$Ref = 'codex/don-dep-vps-phase1-external-artifacts',
     [string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }),
     [switch]$Offline,
     [switch]$AllowUnverifiedSource

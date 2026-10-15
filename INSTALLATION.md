@@ -39,10 +39,10 @@ Clone or sync only the RuleCodex policy repository through the approved organiza
 
 ## Exact one-time Windows command
 
-From a PowerShell prompt in the RuleCodex checkout on the office computer, run exactly:
+On the office computer, run exactly this one PowerShell command (it creates a unique temporary checkout, verifies the repository through Git, installs the policy, and enables the managed startup hook):
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass; .\scripts\install-codex-deploy-policy.ps1 -RuleCodexRoot $PWD -InstallGlobalInstructions -InstallPowerShellHook
+$r=Join-Path $env:TEMP ('rulecodex-'+[guid]::NewGuid().ToString('N')); git clone --depth 1 --branch codex/don-dep-vps-phase1-external-artifacts https://github.com/hai2k2000/rulecodex.git $r; & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $r 'scripts\install-codex-deploy-policy.ps1') -RuleCodexRoot $r -InstallGlobalInstructions -InstallPowerShellHook
 ```
 
 After this, start Codex through the `codex` function in a new PowerShell session. The managed launcher attempts a verified sync before each start and continues with the last valid local policy when the network is unavailable.

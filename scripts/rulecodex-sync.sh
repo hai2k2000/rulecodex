@@ -4,7 +4,7 @@ set -euo pipefail
 MODE="check"
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 REPOSITORY_URL="https://github.com/hai2k2000/rulecodex.git"
-REF="main"
+REF="codex/don-dep-vps-phase1-external-artifacts"
 OFFLINE=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
