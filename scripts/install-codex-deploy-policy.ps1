@@ -29,7 +29,11 @@ $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 foreach ($relative in $manifest.managed_files) {
     $source = Join-Path $RuleCodexRoot $relative
     $expected = $manifest.managed_sha256.PSObject.Properties[$relative].Value
-    $actual = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+    $text = Get-Content -Raw -LiteralPath $source
+    $normalized = $text -replace "`r`n", "`n"
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $actual = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($normalized)))).Replace('-', '') }
+    finally { $sha.Dispose() }
     if (-not $expected -or $actual -ne $expected) { throw "Manifest checksum mismatch: $relative" }
 }
 

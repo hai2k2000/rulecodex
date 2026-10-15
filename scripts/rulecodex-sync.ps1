@@ -32,6 +32,15 @@ function Read-Json([string]$Path) {
     return Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
 }
 
+function Get-NormalizedSha256([string]$Path) {
+    $text = Get-Content -Raw -LiteralPath $Path
+    $normalized = $text -replace "`r`n", "`n"
+    $bytes = [Text.Encoding]::UTF8.GetBytes($normalized)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '') }
+    finally { $sha.Dispose() }
+}
+
 function Save-State($State) {
     New-Item -ItemType Directory -Force -Path (Split-Path $script:StateFile) | Out-Null
     $State | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $script:StateFile -Encoding UTF8
@@ -103,7 +112,7 @@ function Get-Manifest([string]$Root) {
         if ($relative -match '(^|[\\/])\.\.|^/') { throw "Invalid managed path: $relative" }
         if (-not (Test-Path -LiteralPath (Join-Path $Root $relative) -PathType Leaf)) { throw "Missing managed file: $relative" }
         $expected = $manifest.managed_sha256.PSObject.Properties[$relative].Value
-        $actual = (Get-FileHash -LiteralPath (Join-Path $Root $relative) -Algorithm SHA256).Hash
+        $actual = Get-NormalizedSha256 (Join-Path $Root $relative)
         if (-not $expected -or $actual -ne $expected) { throw "Manifest checksum mismatch: $relative" }
     }
     return $manifest
@@ -131,7 +140,7 @@ function Copy-ManagedFiles([string]$Root, $Manifest, [string]$BackupRoot) {
         if (-not $destinationMap.ContainsKey($relative)) { continue }
         $source = Join-Path $Root $relative
         $destination = $destinationMap[$relative]
-        $hash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+        $hash = Get-NormalizedSha256 $source
         if ($hash -notmatch '^[0-9A-F]{64}$') { throw "Invalid checksum for $relative" }
         if (Test-Path -LiteralPath $destination) { Backup-File $destination $BackupRoot | Out-Null }
         New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
@@ -154,7 +163,7 @@ try {
     $remoteRoot = Get-RemoteCheckout
     $manifest = Get-Manifest $remoteRoot
     $commit = (& git -C $remoteRoot rev-parse HEAD).Trim()
-    $policyHash = (Get-FileHash -LiteralPath (Join-Path $remoteRoot 'GLOBAL_DEPLOY_POLICY.md') -Algorithm SHA256).Hash
+    $policyHash = Get-NormalizedSha256 (Join-Path $remoteRoot 'GLOBAL_DEPLOY_POLICY.md')
     if ($commit -notmatch '^[0-9a-f]{40}$' -or $policyHash -notmatch '^[0-9A-F]{64}$') { throw 'Remote provenance/checksum validation failed' }
     $installedVersion = if ($state) { $state.policy_version } else { $null }
     $status = if ($state -and $state.source_commit -eq $commit) { 'current' } else { 'update-available' }

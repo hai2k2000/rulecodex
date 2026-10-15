@@ -41,10 +41,15 @@ for item in data.get('managed_files', []):
     assert not path.is_absolute() and '..' not in path.parts
     file = p.parent / item
     assert file.is_file(), item
-    assert data['managed_sha256'][item].lower() == hashlib.sha256(file.read_bytes()).hexdigest(), item
+    normalized = file.read_text(encoding='utf-8').replace('\\r\\n', '\\n').encode('utf-8')
+    assert data['managed_sha256'][item].lower() == hashlib.sha256(normalized).hexdigest(), item
 PY
 commit="$(git -C "$tmp/repo" rev-parse HEAD)"
-policy_hash="$(sha256sum "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" | awk '{print toupper($1)}')"
+policy_hash="$(python3 - "$tmp/repo/GLOBAL_DEPLOY_POLICY.md" <<'PY'
+import hashlib, pathlib, sys
+print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8').replace('\\r\\n','\\n').encode('utf-8')).hexdigest().upper())
+PY
+)"
 log INFO "Verified RuleCodex ref=$REF commit=$commit policy_hash=$policy_hash"
 if [[ "$MODE" != "sync" ]]; then exit 0; fi
 mkdir -p "$CODEX_HOME_DIR/skills/local-vps-deploy"
