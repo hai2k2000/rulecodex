@@ -109,7 +109,7 @@ function Get-RemoteCheckout {
     $temp = Join-Path ([IO.Path]::GetTempPath()) ("rulecodex-sync-" + [guid]::NewGuid().ToString('N'))
     $gitOutput = @(& git clone --depth 1 --branch $Ref --filter=blob:none --no-checkout $RepositoryUrl $temp 2>&1)
     $cloneExit = $LASTEXITCODE
-    foreach ($line in $gitOutput) { Write-Event ([string]$line) }
+    foreach ($line in $gitOutput) { Write-Event ([string]$line) | Out-Null }
     if ($cloneExit -ne 0) { throw "Unable to retrieve RuleCodex from $RepositoryUrl ref $Ref" }
     & git -C $temp checkout --quiet $Ref
     if ($LASTEXITCODE -ne 0) { throw 'Unable to materialize the requested RuleCodex ref' }
