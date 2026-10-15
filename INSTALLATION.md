@@ -43,12 +43,26 @@ Clone or sync only the RuleCodex policy repository through the approved organiza
 4. Start a fresh Codex task and confirm it reads the global instructions before any build/deploy task.
 5. Record the environment, policy version/commit, install time, and PASS/FAIL result without secrets.
 
+## Migrating an existing installation
+
+Installations created from the experimental branch keep that branch in their installed sync script. They cannot discover the new default until their managed scripts are replaced. Run the following one-time command from an approved PowerShell session; it clones `main`, validates the manifest before installation, backs up changed files, replaces the managed sync/launcher files, and records the migration. It does not modify model/provider settings, 9Router, CLIProxyAPI, SSH configuration, or the Codex Desktop executable.
+
+```powershell
+$r=Join-Path $env:TEMP ('rulecodex-migrate-'+[guid]::NewGuid().ToString('N')); git clone --depth 1 --branch main https://github.com/hai2k2000/rulecodex.git $r; & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $r 'scripts\rulecodex-migrate.ps1') -RuleCodexRoot $r -InstallGlobalInstructions
+```
+
+The migration refuses to replace files when the `main` manifest or managed-file checksums fail. After it succeeds, inspect `rules\rulecodex-state.json` and run the managed launcher once; its sync log must show `ref=main`. Offline runs retain the last verified policy and emit a warning.
+
 ## Exact one-time Windows command
 
 On the office computer, run exactly this one PowerShell command (it creates a unique temporary checkout, verifies the repository through Git, installs the policy, and enables the managed startup hook):
 
 ```powershell
-$r=Join-Path $env:TEMP ('rulecodex-'+[guid]::NewGuid().ToString('N')); git clone --depth 1 --branch codex/don-dep-vps-phase1-external-artifacts https://github.com/hai2k2000/rulecodex.git $r; & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $r 'scripts\install-codex-deploy-policy.ps1') -RuleCodexRoot $r -InstallGlobalInstructions -InstallPowerShellHook
+$r=Join-Path $env:TEMP ('rulecodex-'+[guid]::NewGuid().ToString('N')); git clone --depth 1 --branch main https://github.com/hai2k2000/rulecodex.git $r; & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $r 'scripts\install-codex-deploy-policy.ps1') -RuleCodexRoot $r -InstallGlobalInstructions -InstallPowerShellHook
 ```
 
-After this, start Codex through the `codex` function in a new PowerShell session. The managed launcher attempts a verified sync before each start and continues with the last valid local policy when the network is unavailable.
+After this, start Codex through the `codex` function in a new PowerShell session. The managed launcher attempts a verified sync from `main` before each start and continues with the last valid local policy when the network is unavailable.
+
+## Rollback
+
+If a policy update on `main` fails validation or causes an instruction regression, do not activate production. Stop the managed launcher, identify the timestamped directory under `CODEX_HOME\backups\rulecodex\`, and restore the previous `AGENTS.md`, policy, skill, and managed scripts as a single backup set. Restore the prior `rules\rulecodex-state.json` if it was included in the backup, then run `rulecodex-status` and an offline managed-launcher check. Keep the failed sync log and record the commit/checksum as rollback evidence. A future sync remains blocked until an owner approves a corrected `main` commit.

@@ -19,7 +19,7 @@ MANAGED_END='<!-- END CODEX GLOBAL DEPLOY POLICY -->'
 [[ -f "$SOURCE_POLICY" ]] || { echo "Missing $SOURCE_POLICY" >&2; exit 1; }
 [[ -f "$SOURCE_MANIFEST" ]] || { echo "Missing $SOURCE_MANIFEST" >&2; exit 1; }
 [[ -f "$SOURCE_SKILL" ]] || { echo "Missing $SOURCE_SKILL" >&2; exit 1; }
-for script in rulecodex-sync.sh codex-managed.sh rulecodex-status.sh; do
+for script in rulecodex-sync.sh codex-managed.sh rulecodex-status.sh rulecodex-migrate.sh; do
   [[ -f "$RULECODEX_ROOT/scripts/$script" ]] || { echo "Missing $RULECODEX_ROOT/scripts/$script" >&2; exit 1; }
 done
 
@@ -47,6 +47,7 @@ cp "$SOURCE_POLICY" "$tmp/rules/GLOBAL_DEPLOY_POLICY.md"
 cp "$RULECODEX_ROOT/scripts/rulecodex-sync.sh" "$tmp/bin/rulecodex-sync.sh"
 cp "$RULECODEX_ROOT/scripts/codex-managed.sh" "$tmp/bin/codex-managed.sh"
 cp "$RULECODEX_ROOT/scripts/rulecodex-status.sh" "$tmp/bin/rulecodex-status.sh"
+cp "$RULECODEX_ROOT/scripts/rulecodex-migrate.sh" "$tmp/bin/rulecodex-migrate.sh"
 
 mkdir -p "$CODEX_HOME_DIR/skills/local-vps-deploy" "$CODEX_HOME_DIR/rules" "$CODEX_HOME_DIR/bin"
 backup_if_changed() {
@@ -61,12 +62,14 @@ backup_if_changed "$tmp/rules/GLOBAL_DEPLOY_POLICY.md" "$TARGET_POLICY"
 backup_if_changed "$tmp/bin/rulecodex-sync.sh" "$CODEX_HOME_DIR/bin/rulecodex-sync.sh"
 backup_if_changed "$tmp/bin/codex-managed.sh" "$CODEX_HOME_DIR/bin/codex-managed.sh"
 backup_if_changed "$tmp/bin/rulecodex-status.sh" "$CODEX_HOME_DIR/bin/rulecodex-status.sh"
+backup_if_changed "$tmp/bin/rulecodex-migrate.sh" "$CODEX_HOME_DIR/bin/rulecodex-migrate.sh"
 cp "$tmp/skills/local-vps-deploy/SKILL.md" "$TARGET_SKILL"
 cp "$tmp/rules/GLOBAL_DEPLOY_POLICY.md" "$TARGET_POLICY"
 cp "$tmp/bin/rulecodex-sync.sh" "$CODEX_HOME_DIR/bin/rulecodex-sync.sh"
 cp "$tmp/bin/codex-managed.sh" "$CODEX_HOME_DIR/bin/codex-managed.sh"
 cp "$tmp/bin/rulecodex-status.sh" "$CODEX_HOME_DIR/bin/rulecodex-status.sh"
-chmod 700 "$CODEX_HOME_DIR/bin/rulecodex-sync.sh" "$CODEX_HOME_DIR/bin/codex-managed.sh" "$CODEX_HOME_DIR/bin/rulecodex-status.sh"
+cp "$tmp/bin/rulecodex-migrate.sh" "$CODEX_HOME_DIR/bin/rulecodex-migrate.sh"
+chmod 700 "$CODEX_HOME_DIR/bin/rulecodex-sync.sh" "$CODEX_HOME_DIR/bin/codex-managed.sh" "$CODEX_HOME_DIR/bin/rulecodex-status.sh" "$CODEX_HOME_DIR/bin/rulecodex-migrate.sh"
 
 agents="$CODEX_HOME_DIR/AGENTS.md"
 python3 - "$agents" "$MANAGED_START" "$MANAGED_END" <<'PY'

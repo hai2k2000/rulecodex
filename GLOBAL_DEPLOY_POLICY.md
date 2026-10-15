@@ -1,6 +1,6 @@
 # Global Deploy Policy
 
-Version: 1.0  
+Version: 1.0
 Scope: all Codex-managed projects that deploy to a VPS or another explicitly identified target.
 
 ## Purpose
@@ -93,7 +93,7 @@ Every build/deploy task reports: project, source commit, artifact/release id, ta
 
 ## Reference
 
-Canonical repository: `hai2k2000/rulecodex`  
-Canonical file: `GLOBAL_DEPLOY_POLICY.md`  
-Reusable skill: `skills/local-vps-deploy/SKILL.md`  
+Canonical repository: `hai2k2000/rulecodex`
+Canonical file: `GLOBAL_DEPLOY_POLICY.md`
+Reusable skill: `skills/local-vps-deploy/SKILL.md`
 Install each environment independently; do not assume Windows, WSL2, VPS, office machines, or future Codex installations share a filesystem.

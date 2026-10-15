@@ -2,14 +2,14 @@
   "schema_version": 1,
   "policy_version": "1.0.0",
   "source_repository": "https://github.com/hai2k2000/rulecodex.git",
-  "source_ref": "codex/don-dep-vps-phase1-external-artifacts",
+  "source_ref": "main",
   "managed_files": [
     "GLOBAL_DEPLOY_POLICY.md",
     "skills/local-vps-deploy/SKILL.md",
     "templates/PROJECT_DEPLOYMENT.md"
   ],
   "managed_sha256": {
-    "GLOBAL_DEPLOY_POLICY.md": "26EB7E39B62CB807C7E79A1A2931A43303A7B6AC9B5422D86363B98C44762573",
+    "GLOBAL_DEPLOY_POLICY.md": "7C15CD3F75171FDA0A8C71E68208C19E24EB94EE1F1208786097E6F3873A19F9",
     "skills/local-vps-deploy/SKILL.md": "1313B3312B90A2A53C6426A67864BB8D52D3331C8CA1A1A6D81DD4FE2F25BE3D",
     "templates/PROJECT_DEPLOYMENT.md": "C2F5D5EFCAAF700401FF6A8ABED7143109250BB223CED83763F62702A92A9A36"
   },
