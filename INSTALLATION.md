@@ -1,0 +1,48 @@
+# Policy Installation and Synchronization
+
+Install the policy and `local-vps-deploy` skill independently on every Codex environment. Do not assume that Windows, WSL2, a VPS, an office machine, or a future installation shares `HOME`, `CODEX_HOME`, or the same checkout.
+
+## Windows Codex
+
+Run PowerShell from a trusted RuleCodex checkout:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install-codex-deploy-policy.ps1 -RuleCodexRoot $PWD -InstallGlobalInstructions -InstallPowerShellHook
+```
+
+This installs the skill under `$env:CODEX_HOME\skills` (or `$HOME\.codex\skills`) and caches the policy under `rules\GLOBAL_DEPLOY_POLICY.md`. Existing skill directories are renamed to a timestamped backup before replacement.
+
+## WSL2 or Linux Codex
+
+Run the POSIX installer from a Linux-visible RuleCodex checkout:
+
+```bash
+bash scripts/install-codex-deploy-policy.sh "$PWD"
+```
+
+The POSIX installer places `rulecodex-sync.sh`, `rulecodex-status.sh`, and `codex-managed.sh` in `$CODEX_HOME/bin`. Add that directory after the real Codex executable in the user's PATH or call the managed launcher by its full path.
+
+Set `CODEX_HOME` explicitly when the environment does not use `$HOME/.codex`.
+
+## VPS or office machine
+
+Clone or sync only the RuleCodex policy repository through the approved organization channel, verify the repository/commit, then run the installer locally on that environment. Do not copy credentials or a development worktree merely to install the policy. VPS installation does not authorize deployment or cleanup.
+
+## New/future environment checklist
+
+1. Confirm the local `CODEX_HOME` and the RuleCodex checkout.
+2. Install the policy and skill with the environment-appropriate script.
+3. Verify the installed `GLOBAL_DEPLOY_POLICY.md` and `local-vps-deploy/SKILL.md` hashes against the checkout.
+4. Start a fresh Codex task and confirm it reads the global instructions before any build/deploy task.
+5. Record the environment, policy version/commit, install time, and PASS/FAIL result without secrets.
+
+## Exact one-time Windows command
+
+From a PowerShell prompt in the RuleCodex checkout on the office computer, run exactly:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass; .\scripts\install-codex-deploy-policy.ps1 -RuleCodexRoot $PWD -InstallGlobalInstructions -InstallPowerShellHook
+```
+
+After this, start Codex through the `codex` function in a new PowerShell session. The managed launcher attempts a verified sync before each start and continues with the last valid local policy when the network is unavailable.
