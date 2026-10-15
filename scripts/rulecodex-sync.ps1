@@ -10,6 +10,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Git writes progress to stderr; treat native stderr as captured diagnostics, not terminating PowerShell errors.
+if ($null -ne (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue)) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 $script:LogDir = Join-Path $CodexHome 'logs'
 $script:LogFile = Join-Path $script:LogDir 'rulecodex-sync.log'
 $script:StateFile = Join-Path $CodexHome 'rules\rulecodex-state.json'
@@ -111,9 +115,11 @@ function Get-RemoteCheckout {
     $cloneExit = $LASTEXITCODE
     foreach ($line in $gitOutput) { Write-Event ([string]$line) | Out-Null }
     if ($cloneExit -ne 0) { throw "Unable to retrieve RuleCodex from $RepositoryUrl ref $Ref" }
-    & git -C $temp checkout --quiet $Ref
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to materialize the requested RuleCodex ref' }
-    return $temp
+    $checkoutOutput = @(& git -C $temp checkout --quiet $Ref 2>&1)
+    $checkoutExit = $LASTEXITCODE
+    foreach ($line in $checkoutOutput) { Write-Event ([string]$line) | Out-Null }
+    if ($checkoutExit -ne 0) { throw 'Unable to materialize the requested RuleCodex ref' }
+    return [string]$temp
 }
 
 function Copy-ManagedFiles([string]$Root, $Manifest, [string]$BackupRoot) {
