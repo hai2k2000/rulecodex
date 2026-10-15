@@ -120,13 +120,19 @@ function Get-Manifest([string]$Root) {
 
 function Get-RemoteCheckout {
     $temp = Join-Path ([IO.Path]::GetTempPath()) ("rulecodex-sync-" + [guid]::NewGuid().ToString('N'))
-    $gitOutput = @(& git clone --depth 1 --branch $Ref --filter=blob:none --no-checkout $RepositoryUrl $temp 2>&1)
+    $gitErr = "$temp.clone.stderr.log"
+    $gitOutput = @(& git clone --depth 1 --branch $Ref --filter=blob:none --no-checkout $RepositoryUrl $temp 2> $gitErr)
     $cloneExit = $LASTEXITCODE
+    Write-Event "git clone exit=$cloneExit path=$temp" | Out-Null
     foreach ($line in $gitOutput) { Write-Event ([string]$line) | Out-Null }
+    if (Test-Path -LiteralPath $gitErr) { Get-Content -LiteralPath $gitErr | ForEach-Object { Write-Event ([string]$_) | Out-Null } }
     if ($cloneExit -ne 0) { throw "Unable to retrieve RuleCodex from $RepositoryUrl ref $Ref" }
-    $checkoutOutput = @(& git -C $temp checkout --quiet $Ref 2>&1)
+    $checkoutErr = "$temp.checkout.stderr.log"
+    $checkoutOutput = @(& git -C $temp checkout --quiet $Ref 2> $checkoutErr)
     $checkoutExit = $LASTEXITCODE
+    Write-Event "git checkout exit=$checkoutExit path=$temp" | Out-Null
     foreach ($line in $checkoutOutput) { Write-Event ([string]$line) | Out-Null }
+    if (Test-Path -LiteralPath $checkoutErr) { Get-Content -LiteralPath $checkoutErr | ForEach-Object { Write-Event ([string]$_) | Out-Null } }
     if ($checkoutExit -ne 0) { throw 'Unable to materialize the requested RuleCodex ref' }
     return [string]$temp
 }
