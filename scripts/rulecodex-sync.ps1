@@ -84,12 +84,12 @@ $script:ManagedMarkerEnd
 function Update-GlobalAgents([string]$PolicyPath, [string]$BackupRoot) {
     $agents = Join-Path $CodexHome 'AGENTS.md'
     if (-not (Test-Path -LiteralPath $agents)) {
-        Write-Event "Global AGENTS.md does not exist; no file created automatically." 'WARN'
+        Write-Event "Global AGENTS.md does not exist; no file created automatically." 'WARN' | Out-Null
         return 'missing'
     }
     $override = Join-Path $CodexHome 'AGENTS.override.md'
     if (Test-Path -LiteralPath $override) {
-        Write-Event "AGENTS.override.md exists and has higher precedence; it was not modified." 'WARN'
+        Write-Event "AGENTS.override.md exists and has higher precedence; it was not modified." 'WARN' | Out-Null
     }
     $content = Get-Content -Raw -LiteralPath $agents
     $block = Get-ManagedPolicyBlock $PolicyPath
@@ -99,7 +99,7 @@ function Update-GlobalAgents([string]$PolicyPath, [string]$BackupRoot) {
     if ($next -ne $content) {
         Backup-File $agents $BackupRoot | Out-Null
         Set-Content -LiteralPath $agents -Value $next -Encoding UTF8
-        Write-Event "Updated managed global deploy block in $agents"
+        Write-Event "Updated managed global deploy block in $agents" | Out-Null
         return 'updated'
     }
     return 'unchanged'
