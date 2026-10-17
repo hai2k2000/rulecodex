@@ -47,6 +47,16 @@ Missing or conflicting values are a preflight blocker, not a reason to guess.
 
 ## Gates
 
+### Risk-based authenticated smoke
+
+Authenticated smoke is required by default. A release may omit authenticated smoke only when its immutable artifact records `risk_class=low` and `risk_test_evidence=automated-tests-pass`, both produced by the repository's classifier after the required automated tests pass.
+
+The classifier is fail-closed. A release is high-risk when it changes authentication, authorization/RBAC, security, sessions, secrets, API routes, database/schema/migrations, data access, runtime/deployment configuration, dependencies, or any path not explicitly classified as low-risk. High-risk releases require authenticated smoke or a valid, unexpired controlled waiver bound to the exact commit and target.
+
+Low-risk releases are limited to reviewed UI/CSS/content changes and explicitly classified low-risk presentation logic covered by automated tests. They still require build verification, artifact provenance/checksum, disk guard, deploy lock, atomic activation, health checks, rollback readiness, and bounded retention.
+
+No environment variable, manual flag, or stale waiver may downgrade a high-risk release. If classification or test evidence is missing, activation must fail closed.
+
 ### Build gate
 
 - working tree and source commit captured;
