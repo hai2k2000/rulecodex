@@ -54,6 +54,14 @@ Dùng **tooling có sẵn** trước; không xây engine thứ hai. Nếu tool k
 
 ## 4. Worktree, release và reference — kinh nghiệm cần tái sử dụng
 
+### External CI artifact handoff
+
+- Build/test/package production artifacts on an external CI runner whenever the project supports it; the VPS should receive only an immutable, verified artifact.
+- Require artifact provenance (`commit`, `artifact_source_commit`, branch/integration baseline), file-level SHA-256 evidence, and a secret scan before handoff.
+- Runtime environment files and production secrets stay on the host. An artifact marked `env_model=runtime-injected` must not contain `.env*`; inject or link runtime env only inside the separately approved activation gate.
+- Verify-only artifact intake is safe by default. Do not activate, restart, migrate, or run retention APPLY as part of artifact verification.
+- Keep host profiles separate from portable skill logic: release root, service, disk floor, lock, and rollback pointers come from the target repository/AGENTS.md, not from this skill's examples.
+
 - Git worktree metadata không nhất thiết nằm trong `$worktree/.metadata`: đọc vị trí đúng từ `git rev-parse --git-path <metadata-key>` theo schema của dự án. Metadata vắng mặt/invalid/mismatch phải fail-closed; không tự adopt từ tên hoặc mtime.
 - Đối chiếu `HEAD` và remote recovery, trạng thái tracked/untracked/ignored; không kết luận “clean” là toàn bộ ignored cache đều có thể xóa khi chưa kiểm tra process/reference.
 - Dùng allocated bytes và free bytes thực tế: tổng `du` theo path **có thể lớn hơn** mức `df` được giải phóng do reflink/hardlink/shared blocks/open deleted files. Không cam kết chính xác số GiB sẽ thu hồi.
