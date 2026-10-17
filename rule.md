@@ -487,7 +487,7 @@ PHASE DONE WHEN:
 - implementation PASS
 - required tests PASS
 - migration PASS
-- smoke test PASS
+- required static/automated checks PASS (authenticated smoke optional)
 - no CRITICAL blocker
 - no HIGH blocker
 ```
@@ -549,7 +549,7 @@ Nếu:
 
 * migration PASS;
 * integrity PASS;
-* smoke test PASS;
+* required integrity/data checks PASS (authenticated smoke optional);
 
 thì migration được coi là COMPLETE.
 
@@ -558,6 +558,10 @@ Không tiếp tục tạo thêm checksum/audit/review nếu không phát hiện 
 ---
 
 # 18. QUY TẮC PRODUCTION
+
+## 18.0. Quy định deploy hiện hành
+
+Trong pipeline build/verify/activation/deploy, authenticated smoke là kiểm tra tùy chọn, không phải gate bắt buộc. Thiếu cookie, bearer token, tài khoản test, controlled waiver hoặc RBAC smoke evidence không được tự tạo blocker. Các gate kỹ thuật khác vẫn bắt buộc theo phạm vi thay đổi: build/typecheck, automated auth/RBAC tests khi liên quan, migration/data safety, checksum/provenance, disk guard, activation atomic, health check và rollback readiness.
 
 Các thao tác production phải ưu tiên an toàn.
 
@@ -666,7 +670,7 @@ Ví dụ:
 * checksum PASS;
 * manifest PASS;
 * migration package PASS;
-* smoke test PASS;
+* required release checks PASS (authenticated smoke optional);
 * approved schema;
 * sealed evidence.
 
@@ -982,7 +986,7 @@ Trước khi chuyển Phase:
 [ ] Tất cả task bắt buộc của Phase COMPLETE?
 [ ] Required validation PASS?
 [ ] Migration/data validation PASS nếu áp dụng?
-[ ] Smoke test PASS?
+[ ] Optional authenticated smoke recorded if run?
 [ ] Không còn CRITICAL/HIGH blocker?
 ```
 

@@ -47,15 +47,15 @@ Missing or conflicting values are a preflight blocker, not a reason to guess.
 
 ## Gates
 
-### Risk-based authenticated smoke
+### Authenticated smoke is optional
 
-Authenticated smoke is required by default. A release may omit authenticated smoke only when its immutable artifact records `risk_class=low` and `risk_test_evidence=automated-tests-pass`, both produced by the repository's classifier after the required automated tests pass.
+Authenticated smoke is an optional diagnostic check, not a mandatory build, verification, activation, or deployment gate. Deployments must not require smoke cookies, bearer tokens, test accounts, hidden credential entry, controlled smoke waivers, or RBAC readiness evidence solely because authenticated smoke was not run.
 
-The classifier is fail-closed. A release is high-risk when it changes authentication, authorization/RBAC, security, sessions, secrets, API routes, database/schema/migrations, data access, runtime/deployment configuration, dependencies, or any path not explicitly classified as low-risk. High-risk releases require authenticated smoke or a valid, unexpired controlled waiver bound to the exact commit and target.
+Risk classification remains fail-closed for the technical checks it controls. A release is high-risk when it changes authentication, authorization/RBAC, security, sessions, secrets, API routes, database/schema/migrations, data access, runtime/deployment configuration, dependencies, or any path not explicitly classified as low-risk. High-risk releases still require the applicable static/automated auth and RBAC tests, migration/data-safety checks, artifact verification, health checks, rollback readiness, and all other deployment gates; high-risk classification must not re-enable a credential smoke gate.
 
-Low-risk releases are limited to reviewed UI/CSS/content changes and explicitly classified low-risk presentation logic covered by automated tests. They still require build verification, artifact provenance/checksum, disk guard, deploy lock, atomic activation, health checks, rollback readiness, and bounded retention.
+Low-risk releases remain limited to reviewed UI/CSS/content changes and explicitly classified low-risk presentation logic covered by automated tests. All releases require build verification, artifact provenance/checksum, disk guard, deploy lock, atomic activation, health checks, rollback readiness, and bounded retention.
 
-No environment variable, manual flag, or stale waiver may downgrade a high-risk release. If classification or test evidence is missing, activation must fail closed.
+If optional authenticated smoke is requested and credentials are unavailable, record `OPTIONAL_AUTHENTICATED_SMOKE=SKIP`; do not block or require a waiver. No environment variable, manual flag, or stale evidence may weaken the mandatory technical gates.
 
 ### Build gate
 

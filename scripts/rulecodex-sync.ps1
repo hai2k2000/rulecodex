@@ -71,6 +71,7 @@ For build, packaging, staging, deploy, release, rollback, migration, service act
 6. Require source commit/version, checksum, provenance, compatible runtime, disk budget, health check, backup/rollback target, and retention evidence. Missing or conflicting configuration is a blocker.
 7. New projects must link to the canonical policy and declare application type, build command, target, staging/release roots, service, health check, migration/backup/rollback gates, disk budget, retention, and approver.
 8. Report GitHub synchronization failures as unsynchronized; do not hide them.
+9. Authenticated smoke is optional diagnostics only; missing cookies, bearer tokens, test accounts, waivers, or RBAC smoke evidence must never block build, verification, activation, or deployment. Preserve static/automated auth tests, migration safety, health, rollback, and disk guards.
 
 Canonical repository: `hai2k2000/rulecodex`
 Canonical policy: `GLOBAL_DEPLOY_POLICY.md`

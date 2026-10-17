@@ -36,6 +36,8 @@ Use this skill for build, staging, verification, release, rollback, or deploymen
 7. Archive/sync the source and deployment evidence to GitHub when appropriate. Report push failures as `GITHUB_UNSYNCED`; do not treat them as a successful archive.
 8. Report the release id, commit, artifact checksum, target, mode, checks, health, rollback readiness, retention result, and blockers without secrets.
 
+Authenticated smoke is optional diagnostics. Never block build, verification, activation, or deployment because smoke credentials, test accounts, controlled waivers, or RBAC smoke evidence are unavailable. Preserve static/automated auth and RBAC tests, migration/data-safety checks, artifact verification, health, rollback, and disk gates.
+
 ## Supported application families
 
 The workflow applies to Next.js, static websites, Node.js backends, Docker applications, and other stacks after compatibility checks. Select commands from project configuration; this skill supplies the safety gates, not universal build commands.
