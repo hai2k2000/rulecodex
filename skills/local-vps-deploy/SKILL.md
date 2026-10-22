@@ -1,11 +1,20 @@
 ---
 name: local-vps-deploy
-description: Build, verify, and (only with explicit approval) activate releases from a local workspace to a configured VPS or other deployment target using checksums, provenance, health checks, rollback gates, and bounded retention.
+description: Safely build, verify and activate releases using the default local-to-target workflow or the Thoi Dai Work VPS-FIRST canonical exception.
 ---
 
-# Local-to-target deployment
+# Profile-aware deployment
 
 Use this skill for build, staging, verification, release, rollback, or deployment-preparation tasks. Read the repository's `AGENTS.md`, deployment documentation, and `GLOBAL_DEPLOY_POLICY.md` before acting. Project configuration is authoritative for commands, paths, services, platform, and budgets; never infer missing target details.
+
+## Canonical Thoi Dai Work VPS-FIRST mode
+
+Use this mode only when the global policy explicitly authorizes it and the Thoi Dai Work project's `AGENTS.md` declares `deployment_profile: thoidai-work-vps-first`. Otherwise use the default local-to-target workflow.
+
+- `BUILD`: test and build in a separate source workspace directly on the authorized VPS, capturing source/dirty-tree state, toolchain, checksums/provenance and an immutable release.
+- `VERIFY`: validate that release, checksum/provenance, disk budget (at least 10 GiB free after headroom), runtime, rollback and migration/data-safety requirements on the same VPS; no external artifact transfer, cross-machine lineage, WSL2/CI/PR or external readiness evidence required.
+- `ACTIVATE`: only after explicit owner approval for the final release, under deploy lock; atomically switch, health check, and automatically rollback if activation health fails. Preserve backups, secrets, rollback targets and bounded retention.
+- Do not bypass old project scripts that still enforce incompatible gates. First update the project's `AGENTS.md`, scripts and hooks with verification; a profile declaration alone does not activate a deployment.
 
 ## Safety boundary
 
@@ -17,9 +26,9 @@ Use this skill for build, staging, verification, release, rollback, or deploymen
 
 ## Modes
 
-`BUILD`: inspect project configuration, capture source commit and tree state, check disk budget, run the configured local build/tests, scan artifact contents for secrets, and emit a checksum/provenance manifest.
+`BUILD`: inspect project configuration, capture source commit and tree state, check disk budget, run tests/build in the policy-approved environment, scan the artifact/release for secrets, and emit checksum/provenance evidence.
 
-`VERIFY`: transfer or receive the artifact through the approved channel, verify target identity, disk/runtime prerequisites, checksum, provenance, release isolation, backup/rollback references, and health checks. Leave production unchanged.
+`VERIFY`: in default mode transfer or receive the artifact through an approved channel; in VPS-FIRST mode verify the release built on that same VPS. Verify target identity, disk/runtime prerequisites, checksum, provenance, release isolation, backup/rollback references, and health checks. Leave production unchanged.
 
 `ACTIVATE`: require explicit owner approval, re-run preflight under the project's deployment lock, create/verify backup and rollback references, activate the exact release, run health checks, and record the result. Stop on any failed gate.
 
@@ -29,9 +38,9 @@ Use this skill for build, staging, verification, release, rollback, or deploymen
 
 1. Discover application type, build/runtime versions, target reference, staging/release roots, service, health check, migration gate, backup/rollback procedure, disk budget, and retention policy.
 2. Resolve the source commit and repository state. A dirty or uncommitted source tree is a warning/blocker according to project policy and must be recorded in provenance.
-3. Run local build and relevant tests in the configured compatible environment. Do not silently switch to GitHub Actions when local work fails; diagnose and report the failure.
-4. Package a minimal artifact, exclude `.env*`, keys, credentials, development caches, and unrelated files, then generate SHA-256 checksums and provenance.
-5. In `VERIFY`, send the artifact to staging or the configured target intake, validate checksum/provenance and target prerequisites, and report PASS/FAIL without activation.
+3. Run build and relevant tests in the profile-approved compatible environment (on VPS for Thoi Dai Work VPS-FIRST). Do not silently switch to GitHub Actions when a build fails; diagnose and report the failure.
+4. Prepare a minimal immutable artifact/release, exclude `.env*`, keys, credentials, development caches, and unrelated files, then generate SHA-256 checksums and provenance.
+5. In `VERIFY`, use target staging for default mode, or a locally built VPS release for VPS-FIRST; validate checksum/provenance and target prerequisites, and report PASS/FAIL without activation.
 6. In `ACTIVATE`, require the approval gate, revalidate the exact artifact and release id, perform the documented activation, and run bounded health checks.
 7. Archive/sync the source and deployment evidence to GitHub when appropriate. Report push failures as `GITHUB_UNSYNCED`; do not treat them as a successful archive.
 8. Report the release id, commit, artifact checksum, target, mode, checks, health, rollback readiness, retention result, and blockers without secrets.
