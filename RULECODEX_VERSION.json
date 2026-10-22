@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": "1.1.0",
+  "policy_version": "1.2.0",
   "source_repository": "https://github.com/hai2k2000/rulecodex.git",
   "source_ref": "main",
   "managed_files": [
@@ -9,9 +9,9 @@
     "templates/PROJECT_DEPLOYMENT.md"
   ],
   "managed_sha256": {
-    "GLOBAL_DEPLOY_POLICY.md": "9AB5E674715F2EF41D7F2BFE748A919B2916833D1B78B39982CBD2FCCE412908",
-    "skills/local-vps-deploy/SKILL.md": "41276096C930153CF6C3FE05EBE448BCABCE51BAF130BDC44BFCF51FEA4162F9",
-    "templates/PROJECT_DEPLOYMENT.md": "C2F5D5EFCAAF700401FF6A8ABED7143109250BB223CED83763F62702A92A9A36"
+    "GLOBAL_DEPLOY_POLICY.md": "45A81C2B1B74E9267FB338FAEE2DFF0BEC86DA88C444189B304B9D5330B11142",
+    "skills/local-vps-deploy/SKILL.md": "B3B7F1B22D219624CAD45273EE66704B97E0F5F993C0BA876D9FF963CC94F14A",
+    "templates/PROJECT_DEPLOYMENT.md": "644EB627F2C187C4957FA45EC82B35D5F3C88FEAA76AA157259F7D7F188D8A9D"
   },
   "notes": "Installers may update only the managed files and the marked global AGENTS block. Do not execute repository scripts during an automatic sync."
 }

@@ -1,6 +1,6 @@
 # Global Deploy Policy
 
-Version: 1.0
+Version: 1.2.0
 Scope: all Codex-managed projects that deploy to a VPS or another explicitly identified target.
 
 ## Purpose
@@ -14,6 +14,26 @@ LOCAL DEVELOPMENT -> LOCAL BUILD -> SSH/RSYNC -> TARGET VERIFY -> PRODUCTION ACT
 ```
 
 GitHub is the source archive, collaboration, and version-control system. GitHub Actions is optional; it is not a required step in the normal deployment path.
+
+
+## Canonical exception: Thoi Dai Work VPS-FIRST
+
+The only project entitled to use `deployment_profile: thoidai-work-vps-first` is **Thoi Dai Work** (application/release family `thoidai-work`). Its project `AGENTS.md` must explicitly opt in and specify the authorized VPS, isolated workspace, immutable release root, activation target and required safeguards. Do not infer an opt-in from filesystem paths. This canonical exception overrides the default local build, external transfer, remote provenance comparison, WSL2 and CI requirements **for that project only**. All other projects retain the default policy unchanged.
+
+For this profile, the approved workflow is:
+
+```text
+SSH -> ISOLATED VPS SOURCE WORKSPACE -> VPS TEST/BUILD -> VERIFY VPS-LOCAL IMMUTABLE RELEASE -> OWNER APPROVAL -> ATOMIC ACTIVATE -> HEALTH/ROLLBACK -> GIT ARCHIVE
+```
+
+- Build/test directly on the authorized VPS in an isolated development workspace; never modify the active release in place. No WSL2, PR, GitHub Actions, external artifact transfer, cross-machine SHA/lineage comparison or external readiness-evidence gate is required.
+- Capture the source commit or version and dirty-tree status, runtime/toolchain, lockfile state, build command, release identity and SHA-256/provenance of the immutable release on the VPS. Never present uncommitted changes as a clean commit; disclose them in the approval record.
+- Verify the release checksum/provenance and runtime locally on the same VPS, with relevant automated tests and migration/data compatibility checks. The VERIFY mode must not modify production.
+- Preserve owner approval for the **final** project/target/release/operations before production activation, restart, migration or destructive cleanup APPLY. Preparatory SHA changes **before approval** do not trigger additional approvals; material release/operation changes **after approval** require renewed consent.
+- Preserve secrets isolation, disk guard of at least 10 GiB free **after required build/deploy headroom**, deployment lock, necessary database backup and migration safety, immutable atomic release activation, post-activation health verification, verified rollback target, automatic rollback on failed activation health, and bounded cache/release/log retention. Never remove active release, rollback target, production data, unknown objects or backups through automated cleanup.
+- GitHub is used for source archiving/versioning, not as a required external build/deploy gate. Report Git sync failures honestly.
+- The project must migrate contradictory `AGENTS.md` rules, scripts, hooks and runbooks, then dry-run before adopting the profile. This exception is **not** permission to bypass gates in old scripts or a standing authorization to deploy production changes.
+
 
 ## Mandatory rules
 
@@ -89,7 +109,7 @@ Activation is blocked until the owner approves the exact project, release identi
 
 ## New project bootstrap
 
-At project creation, add a project-specific `AGENTS.md` (or deployment document) that links to this policy and fills in the required configuration above. The project inherits this policy by default through the global Codex instructions. A project may narrow the allowed operations or add gates; it must document any intentional platform-specific deviation.
+At project creation, add a project-specific `AGENTS.md` (or deployment document) that links to this policy and fills in the required configuration above. The project inherits this policy by default through the global Codex instructions. A project may narrow the allowed operations or add gates; it must document any intentional platform-specific deviation. The above canonically authorized Thoi Dai Work VPS-FIRST exception is the sole approved deviation from the default build/transfer location rules in this version.
 
 ## Environment synchronization
 
